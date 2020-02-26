@@ -33,15 +33,14 @@ public:
     template <typename T>
     void registerReceiver(PluginInfo info, std::function<typename T::Result(T)> receiver)
     {
-        const auto typeIndex = std::type_index(typeid(T));
-        const auto it = m_receivers.find(typeIndex);
+        const auto it = m_receivers.find(T::Info);
         if (it != m_receivers.end())
             static_cast<ReceiversCollection<T>*>(it->second.get())->push_back({ std::move(info), std::move(receiver) });
         else
         {
             auto newCollection = std::make_unique<ReceiversCollection<T>>();
             newCollection->push_back({ std::move(info), std::move(receiver) });
-            m_receivers.insert({ typeIndex, std::move(newCollection) });
+            m_receivers.insert({ T::Info, std::move(newCollection) });
         }
     }
     
@@ -53,7 +52,7 @@ public:
     template <typename T>
     std::optional<typename T::Result> processIntent(T intent)
     {
-        const auto it = m_receivers.find(std::type_index(typeid(T)));
+        const auto it = m_receivers.find(T::Info);
         if (it != m_receivers.end())
         {
             const auto receiversCollection = static_cast<ReceiversCollection<T>*>(it->second.get());
@@ -66,5 +65,5 @@ public:
 
 private:
     std::shared_ptr<IReceiverSelector> m_selector;
-    std::map<std::type_index, std::unique_ptr<ReceiversCollectionBase>> m_receivers;
+    std::map<IntentInfo, std::unique_ptr<ReceiversCollectionBase>> m_receivers;
 };

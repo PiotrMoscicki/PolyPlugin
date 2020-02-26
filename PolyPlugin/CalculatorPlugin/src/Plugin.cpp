@@ -10,8 +10,7 @@ class Plugin : public IPlugin
 public:
 	void init(std::shared_ptr<IntentRouter> router)
 	{
-		std::function<AddIntent::Result(AddIntent)> func = [this] (AddIntent intent) { return addIntentReceiver(std::move(intent)); };
-		router->registerReceiver<AddIntent>(m_info, func);
+		router->registerReceiver<AddIntent>(m_info, [this] (AddIntent intent) { return addIntentReceiver(std::move(intent)); });
 	}
 
 	void deinit(std::shared_ptr<IntentRouter> router)

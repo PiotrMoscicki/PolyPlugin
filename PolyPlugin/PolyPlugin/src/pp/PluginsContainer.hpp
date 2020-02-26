@@ -28,7 +28,7 @@ public:
 	PluginsContainer() : m_intentRouter(std::make_shared<IntentRouter>()) {}
 	PluginsContainer(std::shared_ptr<IntentRouter> router) : m_intentRouter(std::move(router)) {}
 
-	const std::shared_ptr<IntentRouter>& getRouter() const { return m_intentRouter; }
+	const std::shared_ptr<IntentRouter>& getIntentRouter() const { return m_intentRouter; }
     
     std::vector<std::weak_ptr<IPlugin>> load(std::filesystem::path root, bool reccursive)
     {
