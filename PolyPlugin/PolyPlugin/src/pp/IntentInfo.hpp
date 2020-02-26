@@ -6,19 +6,12 @@ class IntentInfo
 {
 public:
 	std::string name;
-
-	class Version			// https://semver.org/
-	{         
-	public:
-		int major = 0;      // incompatible API changes
-		int minor = 0;      // functionality added in a backwards compatible manner
-		int patch = 0;      // backwards compatible bug fixes
-	} version;
+	int version = 0; // there are no backwards compatible fixes in intents API
 };
 
 bool operator== (const IntentInfo& left, const IntentInfo& right)
 {
-	return left.name == right.name && left.version.major == right.version.major;
+	return left.name == right.name && left.version == right.version;
 }
 bool operator!= (const IntentInfo& left, const IntentInfo& right)
 {
@@ -26,17 +19,17 @@ bool operator!= (const IntentInfo& left, const IntentInfo& right)
 }
 bool operator< (const IntentInfo& left, const IntentInfo& right)
 {
-	return left.version.major < right.version.major;
+	return left.version < right.version || left.name < right.name;
 }
 bool operator> (const IntentInfo& left, const IntentInfo& right)
 {
-	return left.version.major > right.version.major;
+	return left.version > right.version || left.name > right.name;
 }
 bool operator<= (const IntentInfo& left, const IntentInfo& right)
 {
-	return left.version.major <= right.version.major;
+	return left.version <= right.version || left.name <= right.name;
 }
 bool operator>= (const IntentInfo& left, const IntentInfo& right)
 {
-	return left.version.major >= right.version.major;
+	return left.version >= right.version || left.name >= right.name;
 }

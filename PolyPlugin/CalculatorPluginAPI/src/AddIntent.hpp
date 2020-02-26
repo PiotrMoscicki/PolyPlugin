@@ -7,7 +7,7 @@ class AddIntent
 {
 public:
 	using Result = int;
-	static inline IntentInfo Info = { "AddIntent", { 2, 1, 1 } };
+	static inline IntentInfo Info = { "AddIntent", 3 };
 
 	int a = 0;
 	int b = 0;
