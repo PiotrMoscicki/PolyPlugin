@@ -1,3 +1,4 @@
+#pragma once
 #include <typeindex>
 #include <memory>
 #include <optional>

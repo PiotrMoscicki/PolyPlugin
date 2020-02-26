@@ -1,38 +1,24 @@
 #include <iostream>
 
 #include <pp/PolyPlugin.hpp>
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-class AddIntent
-{
-public:
-    using Result = int;
-    static inline IntentInfo Info = {};
-    
-    int a = 0;
-    int b = 0;
-};
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-class TestReceiverSelector : public IReceiverSelector
-{
-public:
-    int selectReceiver(IntentInfo intent, std::vector<PluginInfo> receivers) { return static_cast<int>(receivers.size() - 1); } 
-};
+#include <AddIntent.hpp>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 int main()
-{	
-    IntentRouter router(std::make_shared<TestReceiverSelector>());
-    
-    AddIntent addIntent = { 3, 4 };
-    std::cout << router.processIntent(addIntent).has_value() << std::endl;
-    
-    router.registerReceiver<AddIntent>(PluginInfo{"Test"}, std::function([](AddIntent i) { return i.a + i.b; }));
-    std::cout << router.processIntent(addIntent).value() << std::endl;
-    
-    router.registerReceiver<AddIntent>(PluginInfo{"Test"}, std::function([](AddIntent i) { return i.a - i.b; }));
-    std::cout << router.processIntent(addIntent).value() << std::endl;
+{
+	PluginsContainer container;
+	char ownPth[MAX_PATH];
+
+	// When NULL is passed to GetModuleHandle, the handle of the exe itself is returned
+	HMODULE hModule = GetModuleHandle(NULL);
+	if (hModule != NULL)
+	{
+		// Use GetModuleFileName() with module handle to get the path
+		GetModuleFileName(hModule, ownPth, (sizeof(ownPth)));
+		std::cout << std::filesystem::path(ownPth).parent_path() << std::endl;
+
+		container.load(std::filesystem::path(ownPth).parent_path(), false);
+	}
     
 
     std::cout << std::endl << std::endl;

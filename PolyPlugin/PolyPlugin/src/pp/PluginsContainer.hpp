@@ -1,3 +1,4 @@
+#pragma once
 #include <filesystem>
 #include <windows.h>
 
@@ -14,10 +15,11 @@ public:
     virtual const PluginInfo& getPluginInfo() const = 0;
 };
 
-using PluginCreatorType = std::unique_ptr<IPlugin>(__stdcall *)();
+using PluginCreatorType = IPlugin*(__stdcall *)();
+using DymmyFunc = int (__stdcall *)();
 
 #define POLY_PLUGIN_ENTRY() \
-	std::unique_ptr<IPlugin> __declspec(dllexport) __stdcall createPolyPlugin()
+	extern "C" __declspec(dllexport) IPlugin* __stdcall createPolyPlugin()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 class PluginsContainer
@@ -25,6 +27,8 @@ class PluginsContainer
 public:
 	PluginsContainer() : m_intentRouter(std::make_shared<IntentRouter>()) {}
 	PluginsContainer(std::shared_ptr<IntentRouter> router) : m_intentRouter(std::move(router)) {}
+
+	const std::shared_ptr<IntentRouter>& getRouter() const { return m_intentRouter; }
     
     std::vector<std::weak_ptr<IPlugin>> load(std::filesystem::path root, bool reccursive)
     {
@@ -32,15 +36,17 @@ public:
 
 		for (const std::filesystem::path& path : getAllSharedLibs(root, reccursive))
 		{
-			HINSTANCE hGetProcIDDLL = LoadLibrary(LPCSTR(path.c_str()));
+			//HINSTANCE hGetProcIDDLL = LoadLibrary(LPCSTR(path.c_str()));
+			HINSTANCE hGetProcIDDLL = LoadLibrary("C:\\Programming\\PolyPlugin\\dist\\Debug\\CalculatorPlugin.dll");
 			if (!hGetProcIDDLL)
 				continue;
 
 			PluginCreatorType creator = (PluginCreatorType)GetProcAddress(hGetProcIDDLL, "createPolyPlugin");
+			auto w = GetLastError();
 			if (!creator)
 				continue;
 
-			std::shared_ptr<IPlugin> newPlugin(creator().release());
+			std::shared_ptr<IPlugin> newPlugin(creator());
 			m_plugins.push_back(newPlugin);
 
 			newPlugin->init(m_intentRouter);
@@ -68,8 +74,9 @@ private:
 
 				while (it != endit)
 				{
-					if (std::filesystem::is_regular_file(*it) && it->path().extension() == "dll")
+					if (std::filesystem::is_regular_file(*it) && it->path().extension() == ".dll")
 						result.push_back(it->path());
+					++it;
 				}
 			}
 			else
@@ -79,14 +86,15 @@ private:
 
 				while (it != endit)
 				{
-					if (std::filesystem::is_regular_file(*it) && it->path().extension() == "dll")
+					if (std::filesystem::is_regular_file(*it) && it->path().extension() == ".dll")
 						result.push_back(it->path());
+					++it;
 				}
 			}
 		}
 		else
 		{
-			if (std::filesystem::is_regular_file(path) && path.extension() == "dll")
+			if (std::filesystem::is_regular_file(path) && path.extension() == ".dll")
 				result.push_back(path);
 		}
 
