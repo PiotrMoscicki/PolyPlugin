@@ -2,11 +2,12 @@
 
 #include <pp/PolyPlugin.hpp>
 #include <AddIntent.hpp>
+#include <windows.h>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 int main()
 {
-	PluginsContainer container;
+	pp::PluginsContainer container;
 	char ownPth[MAX_PATH];
 
 	HMODULE hModule = GetModuleHandle(NULL);
@@ -17,7 +18,11 @@ int main()
 	}
     
 	AddIntent intent{ 2, 3 };
-	std::cout << container.getIntentRouter()->processIntent(std::move(intent)).value();
+	std::optional<AddIntent::Result> result = container.getIntentRouter()->processIntent(std::move(intent));
+	if (result.has_value())
+		std::cout << "2 + 3 = " << result.value() << std::endl;
+	else
+		std::cout << "Couldn't find handler for AddIntent. Check if it exists and uses the correct major version of PolyPlugin." << std::endl;
 
     std::cout << std::endl << std::endl;
 

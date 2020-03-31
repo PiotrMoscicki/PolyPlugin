@@ -1,5 +1,5 @@
 #pragma once
-#include <typeindex>
+
 #include <memory>
 #include <optional>
 #include <map>
@@ -7,63 +7,108 @@
 
 #include <pp/ReceiversCollection.hpp>
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-class IReceiverSelector
+namespace pp
 {
-public:
-    virtual ~IReceiverSelector() = default;
-    
-    virtual int selectReceiver(IntentInfo intent, std::vector<PluginInfo> receivers) = 0; 
-};
+	class ReceiverSelector;
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-class DefaultReceiverSelector : public IReceiverSelector
-{
-public:
-    int selectReceiver(IntentInfo intent, std::vector<PluginInfo> receivers) { return 0; } 
-};
+	//-------------------------------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------------------------------
+	// This class' purpose is to allow registering/unregistering intent
+	// handlers and provide interface for intent dispatching.
+	class IntentRouter
+	{
+	public:
+		// Create intent router with default receiver selector which 
+		// will always select the first registered intent handler.
+		IntentRouter() : m_selector(std::make_shared<ReceiverSelector>()) {}
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-class IntentRouter 
-{
-public:
-    IntentRouter() : m_selector(std::make_shared<DefaultReceiverSelector>()) {}
-    IntentRouter(std::shared_ptr<IReceiverSelector> selector) : m_selector(std::move(selector)) {}
+		// Allows user to provide custom receiver selector.
+		// @parem selector - receiver selector provided by user
+		IntentRouter(std::shared_ptr<ReceiverSelector> selector) : m_selector(std::move(selector)) {}
 
-    template <typename T>
-    void registerReceiver(PluginInfo info, std::function<typename T::Result(T)> receiver)
-    {
-        const auto it = m_receivers.find(T::Info);
-        if (it != m_receivers.end())
-            static_cast<ReceiversCollection<T>*>(it->second.get())->push_back({ std::move(info), std::move(receiver) });
-        else
-        {
-            auto newCollection = std::make_unique<ReceiversCollection<T>>();
-            newCollection->push_back({ std::move(info), std::move(receiver) });
-            m_receivers.insert({ T::Info, std::move(newCollection) });
-        }
-    }
-    
-    void unregisterReceivers(PluginInfo info)
-    {
-        assert(false); // implement this
-    }
-    
-    template <typename T>
-    std::optional<typename T::Result> processIntent(T intent)
-    {
-        const auto it = m_receivers.find(T::Info);
-        if (it != m_receivers.end())
-        {
-            const auto receiversCollection = static_cast<ReceiversCollection<T>*>(it->second.get());
-            const int chosenReceiver = m_selector->selectReceiver(T::Info, receiversCollection->getPluginsInfo());
-            return receiversCollection->at(chosenReceiver).second(std::move(intent));
-        }
-        else
-            return {};
-    }
+		// Registers intent receiver/handler in this router. If someone
+		// will dispatch intent with type matching given handler with 
+		// 'processIntent' method the registered handler will be sent 
+		// to the selector along with the other handlers matching 
+		// intent type and selector will choose which handler should 
+		// process the intent.
+		// @param info - plugin info is not necessary for this class to
+		//		work but it might be useful to be able to present to 
+		//		the user names and versions of plugins that are able to 
+		//		process the intent if there are multiple intent 
+		//		handlers that match the intent type.
+		template <typename T>
+		void registerReceiver(PluginInfo info, std::function<typename T::Result(T)> receiver);
 
-private:
-    std::shared_ptr<IReceiverSelector> m_selector;
-    std::map<IntentInfo, std::unique_ptr<ReceiversCollectionBase>> m_receivers;
-};
+		// Unregisters all receivers registered with given plugin info.
+		// @param info - info from plugin which intent receivers should
+		//		be removed
+		void unregisterReceivers(PluginInfo info);
+
+		// This method is used for intents dispatching. When it's 
+		// called it asks receiver selector which intent receiver 
+		// should be used to process given intent.
+		// @returns empty optional if receiver for given intent wasn't 
+		//		found or IntentType::Result returned from intent 
+		//		receiver.
+		// @param intent - intent that needs to be processed
+		template <typename T>
+		std::optional<typename T::Result> processIntent(T intent);
+
+	private:
+		std::shared_ptr<ReceiverSelector> m_selector;
+
+		// Receivers are mapped by intent info so older intents (with 
+		// older version) also can be processed if receiver with 
+		// matching intent type is registered in this intent router.
+		std::map<IntentInfo, std::unique_ptr<ReceiversCollectionBase>> m_receivers;
+	}; // class IntentRouter
+
+	//-------------------------------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------------------------------
+	// 
+	class ReceiverSelector
+	{
+	public:
+		virtual ~ReceiverSelector() = default;
+
+		virtual int selectReceiver(IntentInfo intent, std::vector<PluginInfo> receivers) { return 0; }
+	}; // class ReceiverSelector
+
+	//-------------------------------------------------------------------------------------------------------
+	template<typename T>
+	inline void IntentRouter::registerReceiver(PluginInfo info, std::function<typename T::Result(T)> receiver)
+	{
+		const auto it = m_receivers.find(T::Info);
+		if (it != m_receivers.end())
+			static_cast<ReceiversCollection<T>*>(it->second.get())->push_back({ std::move(info), std::move(receiver) });
+		else
+		{
+			auto newCollection = std::make_unique<ReceiversCollection<T>>();
+			newCollection->push_back({ std::move(info), std::move(receiver) });
+			m_receivers.insert({ T::Info, std::move(newCollection) });
+		}
+	}
+
+	void unregisterReceivers(PluginInfo info);
+	{
+		assert(false); // implement this
+	}
+
+	template<typename T>
+	inline std::optional<typename T::Result> IntentRouter::processIntent(T intent)
+	{
+		const auto it = m_receivers.find(T::Info);
+		if (it != m_receivers.end())
+		{
+			const auto receiversCollection = static_cast<ReceiversCollection<T>*>(it->second.get());
+			const int chosenReceiver = m_selector->selectReceiver(T::Info, receiversCollection->getPluginsInfo());
+			return receiversCollection->at(chosenReceiver).second(std::move(intent));
+		}
+		else
+			return {};
+	}
+	
+} // namespace pp

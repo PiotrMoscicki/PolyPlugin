@@ -5,20 +5,20 @@
 #include <AddIntent.hpp>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-class Plugin : public IPlugin
+class Plugin : public pp::IPlugin
 {
 public:
-	void init(std::shared_ptr<IntentRouter> router)
+	void init(std::shared_ptr<pp::IntentRouter> router) final
 	{
 		router->registerReceiver<AddIntent>(m_info, [this] (AddIntent intent) { return addIntentReceiver(std::move(intent)); });
 	}
 
-	void deinit(std::shared_ptr<IntentRouter> router)
+	void deinit(std::shared_ptr<pp::IntentRouter> router) final
 	{
 
 	}
 
-	const PluginInfo& getPluginInfo() const
+	const pp::PluginInfo& getPluginInfo() const final
 	{
 		return m_info;
 	}
@@ -29,7 +29,7 @@ private:
 		return intent.a + intent.b;
 	}
 
-	PluginInfo m_info = { "Calculator", { 1, 0, 0} };
+	pp::PluginInfo m_info = { "Calculator", { 1, 0, 0} };
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
